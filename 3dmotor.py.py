@@ -1,42 +1,100 @@
-import os, shutil
 import streamlit as st
 import streamlit.components.v1 as components
+import base64
+import os
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Oyak Horse Görme Testi", layout="wide")
 
-os.makedirs("static", exist_ok=True)
-if os.path.exists("motor-v2.glb"):
-    shutil.copy("motor-v2.glb", "static/motor-v2.glb")
+st.markdown("""
+<style>
+.block-container {padding: 0 !important; max-width: 100% !important;}
+header, footer {visibility: hidden; height:0;}
+.stApp {background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;}
+</style>
+""", unsafe_allow_html=True)
 
-components.html('''
-<canvas id="c" style="width:100%; height:800px; display:block; background:#1e293b;"></canvas>
+st.markdown("""
+<div style="margin:0; padding:18px 24px 14px 24px; background: rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); text-align:center;">
+  <h1 style="margin:0; color:#f8fafc; font-weight:800; font-size:26px;">Oyak Horse Görme Testi Uygulaması</h1>
+  <p style="margin:6px 0 0 0; color:#94a3b8; font-size:13px;">Eksik vidaları kendin bul • Hiçbir işaretleme yok</p>
+</div>
+""", unsafe_allow_html=True)
+
+POSSIBLE_NAMES = ["motor-v2.glb", "motor.glb", "engine.glb"]
+glb_b64 = ""
+for name in POSSIBLE_NAMES:
+    if os.path.exists(name) and os.path.getsize(name) > 1000:
+        with open(name, "rb") as f:
+            glb_b64 = base64.b64encode(f.read()).decode()
+        break
+
+html_code = """
+<!DOCTYPE html>
+<html>
+<head>
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
 </script>
+<style>
+  html, body {margin:0; padding:0; overflow:hidden; background:#1e293b; width:100%; height:100%}
+  #c {width:100vw; height:calc(100vh - 100px); display:block}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0x1e293b);
-const camera=new THREE.PerspectiveCamera(45, innerWidth/800, 0.1, 100); camera.position.set(1.3,0.9,1.3);
-const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true}); renderer.setSize(innerWidth,800);
-const controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=true; controls.autoRotate=true; controls.autoRotateSpeed=0.8;
-scene.add(new THREE.AmbientLight(0xffffff,2));
-let d=new THREE.DirectionalLight(0xffffff,2); d.position.set(5,10,5); scene.add(d);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1e293b);
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth/(window.innerHeight-100), 0.1, 100);
+camera.position.set(1.6, 0.9, 1.6);
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight-100);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-const loader=new GLTFLoader();
-const draco=new DRACOLoader();
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+let d1 = new THREE.DirectionalLight(0xffffff, 2.0); d1.position.set(5,10,5); scene.add(d1);
+let d2 = new THREE.DirectionalLight(0xffffff, 0.9); d2.position.set(-5,4,-3); scene.add(d2);
+
+const engineGroup = new THREE.Group();
+scene.add(engineGroup);
+
+const b64 = "__B64__";
+const bytes = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+const loader = new GLTFLoader();
+const draco = new DRACOLoader();
 draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 loader.setDRACOLoader(draco);
-loader.load('app/static/motor-v2.glb', (gltf)=>{
-  let m=gltf.scene;
-  let box=new THREE.Box3().setFromObject(m);
-  let c=box.getCenter(new THREE.Vector3()); m.position.sub(c);
-  let s=box.getSize(new THREE.Vector3()).length(); m.scale.setScalar(2.2/s);
-  scene.add(m);
+loader.parse(bytes.buffer, '', (gltf)=>{
+  let model = gltf.scene;
+  let box = new THREE.Box3().setFromObject(model);
+  let center = box.getCenter(new THREE.Vector3());
+  model.position.sub(center);
+  model.position.y += 0.15;
+  let size = box.getSize(new THREE.Vector3()).length();
+  model.scale.setScalar(1.9/size);
+  // RENK DEGISTIRME YOK - orijinal malzeme korunuyor
+  model.traverse(o=>{ if(o.isMesh){ o.castShadow=true; }});
+  engineGroup.add(model);
 });
-(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera); })();
+
+function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+animate();
 </script>
-''', height=820, scrolling=False)
+</body>
+</html>
+"""
+
+final_html = html_code.replace("__B64__", glb_b64)
+components.html(final_html, height=820, scrolling=False)
