@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 import base64
 import os
 
-st.set_page_config(page_title="Oyak Horse Görme Testi", layout="wide")
+st.set_page_config(page_title="3D Araba Motoru", layout="wide")
 
 st.markdown("""
 <style>
@@ -13,14 +13,17 @@ header, footer {visibility: hidden; height:0;}
 </style>
 """, unsafe_allow_html=True)
 
-# === YENI BASLIK - ORTADA ===
 st.markdown("""
-<div style="margin:0; padding:18px 24px 14px 24px; background: rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); text-align:center;">
-  <h1 style="margin:0; color:#f8fafc; font-weight:800; font-size:26px; letter-spacing:0.5px;">Oyak Horse Görme Testi Uygulaması</h1>
-  <p style="margin:6px 0 0 0; color:#94a3b8; font-size:13px;">İnteraktif 3D Motor İnceleme • Gerçek zamanlı render</p>
-  <div style="margin-top:10px; display:flex; justify-content:center; gap:8px;">
-    <span style="background:#0ea5e9; color:white; padding:5px 14px; border-radius:20px; font-size:11px; font-weight:700;">LIVE 3D</span>
-    <span style="background:rgba(255,255,255,0.1); color:#cbd5e1; padding:5px 14px; border-radius:20px; font-size:11px;">motor-v2.glb</span>
+<div style="margin:0; padding:16px 24px 12px 24px; background: rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <h2 style="margin:0; color:#f8fafc; font-weight:700;">🚗 İnteraktif 3D Araba Motoru</h2>
+      <p style="margin:4px 0 0 0; color:#94a3b8; font-size:13px;">Trackpad ve fare ile tam kontrol • Gerçek zamanlı render</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <span style="background:#0ea5e9; color:white; padding:6px 12px; border-radius:20px; font-size:11px; font-weight:700;">LIVE 3D</span>
+      <span style="background:rgba(255,255,255,0.1); color:#cbd5e1; padding:6px 12px; border-radius:20px; font-size:11px;">motor-v2.glb</span>
+    </div>
   </div>
 </div>
 <div style="text-align:center; padding:8px; background: rgba(0,0,0,0.2); color:#64748b; font-size:12px;">
@@ -36,6 +39,7 @@ for name in POSSIBLE_NAMES:
             glb_b64 = base64.b64encode(f.read()).decode()
         break
 
+# f-string YOK - SyntaxError imkansiz
 html_code = """
 <!DOCTYPE html>
 <html>
@@ -45,7 +49,7 @@ html_code = """
 </script>
 <style>
   html, body {margin:0; padding:0; overflow:hidden; background:#1e293b; width:100%; height:100%}
-  #c {width:100vw; height:calc(100vh - 130px); display:block}
+  #c {width:100vw; height:calc(100vh - 95px); display:block}
 </style>
 </head>
 <body>
@@ -58,11 +62,11 @@ import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1e293b);
-const camera = new THREE.PerspectiveCamera(42, window.innerWidth/(window.innerHeight-130), 0.1, 100);
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth/(window.innerHeight-95), 0.1, 100);
 camera.position.set(1.6, 0.9, 1.6);
 
 const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight-130);
+renderer.setSize(window.innerWidth, window.innerHeight-95);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -111,9 +115,9 @@ function animate(){
 animate();
 
 window.addEventListener('resize', ()=>{
-  camera.aspect = window.innerWidth/(window.innerHeight-130);
+  camera.aspect = window.innerWidth/(window.innerHeight-95);
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight-130);
+  renderer.setSize(window.innerWidth, window.innerHeight-95);
 });
 </script>
 </body>
@@ -121,4 +125,4 @@ window.addEventListener('resize', ()=>{
 """
 
 final_html = html_code.replace("__B64__", glb_b64)
-components.html(final_html, height=820, scrolling=False)
+components.html(final_html, height=800, scrolling=False)
