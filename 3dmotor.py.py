@@ -7,18 +7,31 @@ st.set_page_config(page_title="Oyak Horse Görme Testi", layout="wide")
 
 st.markdown("""
 <style>
-.block-container {padding: 0 !important; max-width: 100% !important;}
+.block-container {padding: 0!important; max-width: 100%!important;}
 header, footer {visibility: hidden; height:0;}
-.stApp {background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;}
+.stApp {background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%)!important;}
 </style>
 """, unsafe_allow_html=True)
 
+# === YENI BASLIK - ORTADA ===
 st.markdown("""
 <div style="margin:0; padding:18px 24px 14px 24px; background: rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); text-align:center;">
-  <h1 style="margin:0; color:#f8fafc; font-weight:800; font-size:26px;">Oyak Horse Görme Testi Uygulaması</h1>
-  <p style="margin:6px 0 0 0; color:#94a3b8; font-size:13px;">Eksik vidaları kendin bul • Hiçbir işaretleme yok</p>
+  <h1 style="margin:0; color:#f8fafc; font-weight:800; font-size:26px; letter-spacing:0.5px;">Oyak Horse Görme Testi Uygulaması</h1>
+  <p style="margin:6px 0 0 0; color:#94a3b8; font-size:13px;">İnteraktif 3D Motor İnceleme • Gerçek zamanlı render</p>
+  <div style="margin-top:10px; display:flex; justify-content:center; gap:8px;">
+    <span style="background:#0ea5e9; color:white; padding:5px 14px; border-radius:20px; font-size:11px; font-weight:700;">LIVE 3D</span>
+    <span style="background:rgba(255,255,255,0.1); color:#cbd5e1; padding:5px 14px; border-radius:20px; font-size:11px;">motor-v2.glb</span>
+  </div>
+</div>
+<div style="text-align:center; padding:8px; background: rgba(0,0,0,0.2); color:#64748b; font-size:12px;">
+  🖱 Sürükle = Döndür | 🔍 Tekerlek = Zoom | 👆 Sağ tık = Kaydır
 </div>
 """, unsafe_allow_html=True)
+
+# === SENIN ISTEDIGIN - vida eksik, kirmizi YOK ===
+st.sidebar.title("🔧 Görme Testi Ayarları")
+test_mode = st.sidebar.radio("Mod", ["Sağlam Motor", "Vida Eksik (Test)"])
+eksik_sayi = st.sidebar.slider("Kaç vida eksik olsun", 1, 6, 2, disabled=(test_mode=="Sağlam Motor"))
 
 POSSIBLE_NAMES = ["motor-v2.glb", "motor.glb", "engine.glb"]
 glb_b64 = ""
@@ -37,7 +50,7 @@ html_code = """
 </script>
 <style>
   html, body {margin:0; padding:0; overflow:hidden; background:#1e293b; width:100%; height:100%}
-  #c {width:100vw; height:calc(100vh - 100px); display:block}
+  #c {width:100vw; height:calc(100vh - 130px); display:block}
 </style>
 </head>
 <body>
@@ -48,12 +61,16 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 
+const TEST_MODE = "__TESTMODE__";
+const EKSIK_SAYI = __EKSIK__;
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1e293b);
-const camera = new THREE.PerspectiveCamera(42, window.innerWidth/(window.innerHeight-100), 0.1, 100);
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth/(window.innerHeight-130), 0.1, 100);
 camera.position.set(1.6, 0.9, 1.6);
+
 const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight-100);
+renderer.setSize(window.innerWidth, window.innerHeight-130);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -66,6 +83,12 @@ controls.autoRotateSpeed = 0.5;
 scene.add(new THREE.AmbientLight(0xffffff, 1.2));
 let d1 = new THREE.DirectionalLight(0xffffff, 2.0); d1.position.set(5,10,5); scene.add(d1);
 let d2 = new THREE.DirectionalLight(0xffffff, 0.9); d2.position.set(-5,4,-3); scene.add(d2);
+
+const grid = new THREE.GridHelper(6, 12, 0x334155, 0x1e293b);
+grid.position.y = -0.8;
+grid.material.opacity = 0.3;
+grid.material.transparent = true;
+scene.add(grid);
 
 const engineGroup = new THREE.Group();
 scene.add(engineGroup);
@@ -84,17 +107,43 @@ loader.parse(bytes.buffer, '', (gltf)=>{
   model.position.y += 0.15;
   let size = box.getSize(new THREE.Vector3()).length();
   model.scale.setScalar(1.9/size);
-  // RENK DEGISTIRME YOK - orijinal malzeme korunuyor
+
+  // Tum meshleri topla - en kucukler vida
+  let allMeshes = [];
+  model.traverse(o=>{ if(o.isMesh){ allMeshes.push(o); }});
+  allMeshes.sort((a,b)=>{
+    let sa = new THREE.Box3().setFromObject(a).getSize(new THREE.Vector3()).length();
+    let sb = new THREE.Box3().setFromObject(b).getSize(new THREE.Vector3()).length();
+    return sa - sb;
+  });
+
+  // VIDA EKSIK SIMULASYONU - KIRMIZI YOK, sadece gizle
+  if(TEST_MODE.includes("Vida Eksik")){
+    for(let i=0; i<EKSIK_SAYI && i<allMeshes.length; i++){
+      allMeshes[i].visible = false;
+    }
+  }
+
   model.traverse(o=>{ if(o.isMesh){ o.castShadow=true; }});
   engineGroup.add(model);
 });
 
-function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
 animate();
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/(window.innerHeight-130);
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight-130);
+});
 </script>
 </body>
 </html>
 """
 
-final_html = html_code.replace("__B64__", glb_b64)
+final_html = html_code.replace("__B64__", glb_b64).replace("__TESTMODE__", test_mode).replace("__EKSIK__", str(eksik_sayi))
 components.html(final_html, height=820, scrolling=False)
