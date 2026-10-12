@@ -33,7 +33,7 @@ st.sidebar.title("🔧 Görme Testi Ayarları")
 test_mode = st.sidebar.radio("Mod", ["Sağlam Motor", "Vida Eksik (Test)"])
 eksik_sayi = st.sidebar.slider("Kaç vida eksik olsun", 1, 6, 2, disabled=(test_mode=="Sağlam Motor"))
 
-POSSIBLE_NAMES = ["motor-v2.glb", "motor.glb", "engine.glb"]
+POSSIBLE_NAMES = ["motor1-v1.glb", "motor.glb", "engine.glb"]
 glb_b64 = ""
 for name in POSSIBLE_NAMES:
     if os.path.exists(name) and os.path.getsize(name) > 1000:
